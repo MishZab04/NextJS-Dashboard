@@ -160,7 +160,8 @@ export async function fetchInvoiceById(
 
     console.log(`Invoice fetched by ID ${id}:`, data[0]);
 
-    return data[0] ? { ...data[0], amount: data[0].amount / 100 } : undefined;
+    console.log(data); // Data is an empty array []
+    return data[0];
   } catch (error) {
     console.error("Database Error:", error);
     throw new Error("Failed to fetch invoice.");
