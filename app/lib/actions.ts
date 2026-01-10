@@ -38,15 +38,22 @@ const CreateInvoice = FormSchema.omit({ id: true, date: true });
 export async function createInvoice(
   prevState: State,
   formData: FormData
-): Promise<State | void> {
+): Promise<State> {
   try {
-    const validatedFields = CreateInvoice.parse({
+    const validatedFields = CreateInvoice.safeParse({
       customerId: formData.get("customerId"),
       amount: formData.get("amount"),
       status: formData.get("status"),
     });
 
-    const { customerId, amount, status } = validatedFields;
+    if (!validatedFields.success) {
+      return {
+        errors: validatedFields.error.flatten().fieldErrors,
+        message: "Missing or invalid fields. Failed to create invoice.",
+      };
+    }
+
+    const { customerId, amount, status } = validatedFields.data;
     const amountInCents = amount * 100;
     const date = new Date().toISOString().split("T")[0];
 
@@ -58,33 +65,34 @@ export async function createInvoice(
     revalidatePath("/dashboard/invoices");
     redirect("/dashboard/invoices");
   } catch (error: any) {
-    if (error instanceof z.ZodError) {
-      return {
-        errors: error.flatten().fieldErrors,
-        message: "Missing or invalid fields. Failed to create invoice.",
-      };
-    }
     console.error(error);
     return { message: "Database Error: Failed to create invoice." };
   }
 }
 
 /* -------------------- UPDATE -------------------- */
-const UpdateInvoice = FormSchema.omit({ date: true });
+const UpdateInvoice = FormSchema.omit({ id: true, date: true });
 
 export async function updateInvoice(
   id: string,
   prevState: State,
   formData: FormData
-): Promise<State | void> {
+): Promise<State> {
   try {
-    const validatedFields = UpdateInvoice.parse({
+    const validatedFields = UpdateInvoice.safeParse({
       customerId: formData.get("customerId"),
       amount: formData.get("amount"),
       status: formData.get("status"),
     });
 
-    const { customerId, amount, status } = validatedFields;
+    if (!validatedFields.success) {
+      return {
+        errors: validatedFields.error.flatten().fieldErrors,
+        message: "Missing or invalid fields. Failed to update invoice.",
+      };
+    }
+
+    const { customerId, amount, status } = validatedFields.data;
     const amountInCents = amount * 100;
 
     await sql`
@@ -96,12 +104,6 @@ export async function updateInvoice(
     revalidatePath("/dashboard/invoices");
     redirect("/dashboard/invoices");
   } catch (error: any) {
-    if (error instanceof z.ZodError) {
-      return {
-        errors: error.flatten().fieldErrors,
-        message: "Missing or invalid fields. Failed to update invoice.",
-      };
-    }
     console.error(error);
     return { message: "Database Error: Failed to update invoice." };
   }
